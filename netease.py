@@ -2,7 +2,6 @@ import requests
 import os.path
 import yaml
 import logging
-import eyed3
 
 logger = logging.getLogger(__name__)
 
@@ -55,13 +54,37 @@ def cache_song(id, url, format, name, artist, album):
         data = requests.get(url)
         with open(location, 'wb')as file:
             file.write(data.content)
-        img_url = requests.get(api+"/song/detail?ids="+str(id)).json()["songs"][0]['al']['picUrl']
-        image = requests.get(img_url)
+        try:
+            write_tags(location, format, artist, album, name)
+        except Exception as e:
+            logger.error("Could not write tag of "+name+" - "+artist)
+            logger.debug(e)
+        else:
+            logger.warning("Tag "+name+" - "+artist+"has been written to "+location)
+        logger.warning("Song "+str(id)+" has been cached")
+    return location
+
+def write_tags(location, format, artist, album, name):
+    img_url = requests.get(api+"/song/detail?ids="+str(id)).json()["songs"][0]['al']['picUrl']
+    image = requests.get(img_url)
+    if format == 'flac':
+        from mutagen.flac import Picture, FLAC
+        audio = FLAC(location)
+        image = Picture()
+        image.type = 3
+        image.desc = 'cover'
+        image.data = image.content
+        image.mime = image.headers['content-type']
+        audio.add_picture(image)
+        audio["title"] = name
+        audio['artist'] = artist
+        audio['album'] = album
+        audio.save()
+    if format == 'mp3':
+        import eyed3
         audio = eyed3.load(location)
         audio.tag.artist = artist
         audio.tag.album = album
         audio.tag.title = name
         audio.tag.images.set(3, image.content, image.headers['content-type'])
         audio.tag.save()
-        logger.warning("Song "+str(id)+" has been cached")
-    return location

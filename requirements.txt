@@ -2,3 +2,4 @@ pytelegrambotapi
 requests
 pyyaml
 eyeD3
+mutagen
