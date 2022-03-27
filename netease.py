@@ -84,7 +84,7 @@ def cache_song(id, url, format, name, artist, album):
         with open(location, 'wb')as file:
             file.write(data.content)
         try:
-            write_tags(location, format, artist, album, name, img_location)
+            write_tags(location, format, artist, album, name, id)
         except Exception as e:
             logger.error("Could not write tag of "+name+" - "+artist)
             logger.debug(e)
@@ -94,7 +94,13 @@ def cache_song(id, url, format, name, artist, album):
     return Location(location, img_location)
 
 # Write Audio Files tag
-def write_tags(location, format, artist, album, name, thumb):
+def write_tags(location, format, artist, album, name, id):
+    if check_exist(str(id)+'_orig', tmp_dir+'img/'):
+        thumb = check_exist(str(id)+'_orig', tmp_dir+'img/')
+    elif check_exist(str(id), tmp_dir+'img/'):
+        thumb = check_exist(str(id), tmp_dir+'img/')
+    else: 
+        thumb = None
     if format == 'flac':
         from mutagen.flac import Picture, FLAC
         audio = FLAC(location)
@@ -154,7 +160,7 @@ def cache_thumb(id):
         image = Image.open(location)
         original_size = max(image.size[0], image.size[1])
         if original_size >= MAX_SIZE:
-            resized_file = open(location.split('.')[0]+'.jpg', "w")
+            image.save(img_dir + str(id) +'_orig.png', 'PNG')
             if (image.size[0] > image.size[1]):
                 resized_width = MAX_SIZE
                 resized_height = int(round((MAX_SIZE/float(image.size[0]))*image.size[1])) 
@@ -162,8 +168,8 @@ def cache_thumb(id):
                 resized_height = MAX_SIZE
                 resized_width = int(round((MAX_SIZE/float(image.size[1]))*image.size[0]))
             image = image.resize((resized_width, resized_height), Image.ANTIALIAS)
-            image.save(resized_file, 'JPEG')
-            return img_dir+str(id) + '.jpg'
+            image.save(img_dir + str(id) +'.png', 'PNG')
+            return img_dir+str(id) + '.png'
         return location
     else:
         return check_exist(str(id), img_dir)
