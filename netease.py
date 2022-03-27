@@ -46,16 +46,24 @@ def request_api(url):
 def get_song_info(keyword):
     songs = request_api(api+"/search?keywords="+keyword+"&type=1").json()["result"]["songs"]
     for song in songs:
+        name = song["name"]
         artists = []
+        id = song['id']
         for artist in song['artists']:
             artists.append(artist['name'])
-        if check_exist(str(song['id']), tmp_dir):
-            return Song(song["name"], '&'.join(artists), song["id"], check_exist(str(song['id']), tmp_dir).split('.')[-1].lower(), song['album']['name'])
-        availability = request_api(api+"/check/music?id="+str(song["id"])).json()["success"]
+        artist = '&'.join(artists)
+        album = song['album']['name']
+        if check_exist(str(id), tmp_dir):
+            format = check_exist(str(id), tmp_dir).split('.')[-1].lower()
+            if format == 'flac':
+                return Song(name, artist, id, format, album)
+            elif request_api(api+"/song/url?id="+str(id)).json()["data"][0]["type"] == format:
+                return Song(name, artist, id, format, album)
+        availability = request_api(api+"/check/music?id="+str(id)).json()["success"]
         if availability:
-            song_meta = request_api(api+"/song/url?id="+str(song["id"])).json()["data"][0]
+            song_meta = request_api(api+"/song/url?id="+str(id)).json()["data"][0]
             if song_meta["url"] is not None and song_meta["freeTrialInfo"] is None:
-                return Song(song["name"], '&'.join(artists), song["id"], song_meta["type"].lower(), song['album']['name'], song_meta["url"])
+                return Song(name, artist, id, song_meta["type"].lower(), album, song_meta["url"])
     return False
 
 # Cache media
