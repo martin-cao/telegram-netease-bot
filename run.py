@@ -87,7 +87,8 @@ def handle_netease(message):
                 bot.send_chat_action(message.chat.id, "upload_audio")
                 bot.send_audio(chat_id=message.chat.id, reply_to_message_id=message.message_id, audio=audio, caption="「<b>"+song.name+"</b>」\nby "+song.artist, parse_mode='HTML', title=song.name, performer=song.artist, thumb=thumb)
                 audio.close()
-                thumb.close()
+                if thumb:
+                    thumb.close()
                 bot.delete_message(chat_id=message.chat.id, message_id=reply.id)
                 logger.warning(song.name+' - '+song.artist+" has been sent to "+str(message.chat.id))
 
