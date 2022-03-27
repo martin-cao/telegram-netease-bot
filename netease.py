@@ -163,7 +163,7 @@ def cache_thumb(id):
 # Check if directory has item(s)
 def check_exist(item, dir):
     for item in os.listdir(dir):
-        if os.path.splitext(item)[0] == id and os.path.isfile(os.path.join(dir, item)):
+        if os.path.splitext(item)[0] == item and os.path.isfile(os.path.join(dir, item)):
             return os.path.join(dir, item)
         else:
             return False
