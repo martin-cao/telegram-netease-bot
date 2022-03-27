@@ -5,7 +5,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Construct Song Object
+# Construct Song Class
 class Song(object):
     name = ""
     artist = ""
@@ -21,6 +21,15 @@ class Song(object):
         self.url = url
         self.format = format
         self.album = album
+
+# Construct Location Class
+class Location(object):
+    song = ""
+    thumb = ""
+
+    def __init__(self, song, thumb):
+        self.song = song
+        self.thumb = thumb
 
 # Load API config
 config = yaml.safe_load(open("config.yml"))
@@ -47,44 +56,82 @@ def get_song_info(keyword):
                 return Song(song["name"], '&'.join(artists), song["id"], song_meta["url"], song_meta["type"], song['album']['name'])
     return False
 
-# Download song
+# Cache media
 def cache_song(id, url, format, name, artist, album):
     location = tmp_dir+str(id)+'.'+format
+    img_location = cache_thumb(id)
     if not os.path.isfile(location):
         data = requests.get(url)
         with open(location, 'wb')as file:
             file.write(data.content)
         try:
-            write_tags(location, format, artist, album, name)
+            write_tags(location, format, artist, album, name, img_location)
         except Exception as e:
             logger.error("Could not write tag of "+name+" - "+artist)
             logger.debug(e)
         else:
             logger.warning("Tag "+name+" - "+artist+"has been written to "+location)
         logger.warning("Song "+str(id)+" has been cached")
-    return location
+    return Location(location, img_location)
 
-def write_tags(location, format, artist, album, name):
-    img_url = requests.get(api+"/song/detail?ids="+str(id)).json()["songs"][0]['al']['picUrl']
-    image = requests.get(img_url)
+# Write Audio Files tag
+def write_tags(location, format, artist, album, name, thumb):
     if format == 'flac':
         from mutagen.flac import Picture, FLAC
         audio = FLAC(location)
         image = Picture()
         image.type = 3
         image.desc = 'cover'
-        image.data = image.content
-        image.mime = image.headers['content-type']
+        if thumb.endswith('png'):
+            image.mime = 'image/png'
+        elif thumb.endswith('jpg'):
+            image.mime = 'image/jpeg'
+        with open(thumb, 'rb') as img:
+            image.data = img.read()
         audio.add_picture(image)
+        audio["TITLE"] = name
+        audio['ARTIST'] = artist
+        audio['ALBUM'] = album
+        audio.save()
+    if format == 'mp3':
+        from mutagen.mp3 import MP3
+        from mutagen.id3 import ID3, APIC
+        audio = MP3(location, ID3=ID3)   
+        if thumb.endswith('png'):
+            mime = 'image/png'
+        elif thumb.endswith('jpg'):
+            mime = 'image/jpeg' 
+        audio.tags.add(
+            APIC(
+                encoding=3, 
+                mime=mime, 
+                type=3, 
+                desc=u'Cover',
+                data=open(thumb).read()
+            )
+        )
+        audio.save()
+        from mutagen.easyid3 import EasyID3
+        audio = EasyID3(location)
         audio["title"] = name
         audio['artist'] = artist
         audio['album'] = album
         audio.save()
-    if format == 'mp3':
-        import eyed3
-        audio = eyed3.load(location)
-        audio.tag.artist = artist
-        audio.tag.album = album
-        audio.tag.title = name
-        audio.tag.images.set(3, image.content, image.headers['content-type'])
-        audio.tag.save()
+        
+
+def cache_thumb(id): 
+    if not os.path.isfile(tmp_dir+str(id)+'.jpg') and not os.path.isfile(tmp_dir+str(id)+'.png'):
+        img_url = request_api(api+"/song/detail?ids="+str(id)).json()["songs"][0]['al']['picUrl']
+        img = requests.get(img_url)
+        img_ext = img_url.split('.')[-1]
+        location = tmp_dir+str(id) + '.' + img_ext
+        with open(location, 'wb')as file:
+            file.write(img.content)
+        return location
+    else:
+        if os.path.isfile(tmp_dir+str(id)+'.jpg'):
+            return tmp_dir+str(id)+'.jpg'
+        elif os.path.isfile(tmp_dir+str(id)+'.png'):
+            return tmp_dir+str(id)+'.png'
+        else:
+            return None
