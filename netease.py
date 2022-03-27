@@ -122,11 +122,14 @@ def write_tags(location, format, artist, album, name, thumb):
         
 
 def cache_thumb(id): 
-    if not os.path.isfile(tmp_dir+str(id)+'.jpg') and not os.path.isfile(tmp_dir+str(id)+'.png'):
+    img_dir = tmp_dir+'img/'
+    if not os.path.exists(img_dir):
+        os.makedirs(img_dir)
+    if not check_exist(str(id), img_dir):
         img_url = request_api(api+"/song/detail?ids="+str(id)).json()["songs"][0]['al']['picUrl']
         img = requests.get(img_url)
         img_ext = img_url.split('.')[-1]
-        location = tmp_dir+str(id) + '.' + img_ext
+        location = img_dir+str(id) + '.' + img_ext
         with open(location, 'wb')as file:
             file.write(img.content)
         import Image
@@ -143,15 +146,10 @@ def cache_thumb(id):
                 resized_width = int(round((MAX_SIZE/float(image.size[1]))*image.size[0]))
             image = image.resize((resized_width, resized_height), Image.ANTIALIAS)
             image.save(resized_file, 'JPEG')
-            return tmp_dir+str(id) + '.jpg'
+            return img_dir+str(id) + '.jpg'
         return location
     else:
-        if os.path.isfile(tmp_dir+str(id)+'.jpg'):
-            return tmp_dir+str(id)+'.jpg'
-        elif os.path.isfile(tmp_dir+str(id)+'.png'):
-            return tmp_dir+str(id)+'.png'
-        else:
-            return None
+            return check_exist(str(id), img_dir)
         
 def check_exist(item, dir):
     for item in os.listdir(dir):
