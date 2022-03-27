@@ -1,5 +1,5 @@
 import logging
-import sys
+import sys, os
 import yaml
 import netease
 import telebot
@@ -12,6 +12,7 @@ try:
     config = yaml.safe_load(open("config.yml"))
     log_level = config['general']['loglevel']
     token = config['general']['token']
+    tmp_dir = config['netease']['tmpdir']
 except Exception as e:
     logger.critical("config.yml is not valid!")
     logger.debug(e)
@@ -19,6 +20,16 @@ except Exception as e:
     
 logging.basicConfig(level=getattr(logging, log_level.upper(), 10),
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+try:
+    if not os.path.exists(tmp_dir):
+        os.makedirs(tmp_dir)
+    if not os.path.exists(tmp_dir+'img/'):
+        os.makedirs(tmp_dir+'img/')
+except Exception as e:
+    logger.critical("Temp directory not writable!!!")
+    logger.debug(e)
+    sys.exit()
 
 # Sign into Telegram
 if 'tgapi' in config['general']:
