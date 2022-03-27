@@ -14,7 +14,7 @@ class Song(object):
     format = ""
     album = ""
 
-    def __init__(self, name, artist, id, url, format, album):
+    def __init__(self, name, artist, id, format, album, url=None):
         self.name = name
         self.artist = artist
         self.id = id
@@ -46,14 +46,16 @@ def request_api(url):
 def get_song_info(keyword):
     songs = request_api(api+"/search?keywords="+keyword+"&type=1").json()["result"]["songs"]
     for song in songs:
+        artists = []
+        for artist in song['artists']:
+            artists.append(artist['name'])
+        if check_exist(str(song['id']), tmp_dir):
+            return Song(song["name"], '&'.join(artists), song["id"], check_exist(str(song['id']), tmp_dir).split('.')[-1], song['album']['name'])
         availability = request_api(api+"/check/music?id="+str(song["id"])).json()["success"]
         if availability:
             song_meta = request_api(api+"/song/url?id="+str(song["id"])).json()["data"][0]
             if song_meta["url"] is not None and song_meta["freeTrialInfo"] is None:
-                artists = []
-                for artist in song['artists']:
-                    artists.append(artist['name'])
-                return Song(song["name"], '&'.join(artists), song["id"], song_meta["url"], song_meta["type"], song['album']['name'])
+                return Song(song["name"], '&'.join(artists), song["id"], song_meta["type"], song['album']['name'], song_meta["url"])
     return False
 
 # Cache media
@@ -150,3 +152,10 @@ def cache_thumb(id):
             return tmp_dir+str(id)+'.png'
         else:
             return None
+        
+def check_exist(item, dir):
+    for item in os.listdir(dir):
+        if os.path.splitext(item)[0] == id and os.path.isfile(os.path.join(dir, item)):
+            return os.path.join(dir, item)
+        else:
+            return False
