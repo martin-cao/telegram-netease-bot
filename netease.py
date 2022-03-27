@@ -50,18 +50,27 @@ def get_song_info(keyword):
         for artist in song['artists']:
             artists.append(artist['name'])
         if check_exist(str(song['id']), tmp_dir):
-            return Song(song["name"], '&'.join(artists), song["id"], check_exist(str(song['id']), tmp_dir).split('.')[-1], song['album']['name'])
+            return Song(song["name"], '&'.join(artists), song["id"], check_exist(str(song['id']), tmp_dir).split('.')[-1].lower(), song['album']['name'])
         availability = request_api(api+"/check/music?id="+str(song["id"])).json()["success"]
         if availability:
             song_meta = request_api(api+"/song/url?id="+str(song["id"])).json()["data"][0]
             if song_meta["url"] is not None and song_meta["freeTrialInfo"] is None:
-                return Song(song["name"], '&'.join(artists), song["id"], song_meta["type"], song['album']['name'], song_meta["url"])
+                return Song(song["name"], '&'.join(artists), song["id"], song_meta["type"].lower(), song['album']['name'], song_meta["url"])
     return False
 
 # Cache media
 def cache_song(id, url, format, name, artist, album):
     location = tmp_dir+str(id)+'.'+format
-    img_location = cache_thumb(id)
+    # delete low-res audio file
+    if format == 'flac':
+        if os.path.exists(tmp_dir+str(id)+'.mp3'):
+            os.remove(tmp_dir+str(id)+'.mp3')
+    try:
+        img_location = cache_thumb(id)
+    except Exception as e:
+        img_location = None
+        logger.error("Unable to cache thumbnail for "+name+' - '+artist)
+        logger.debug(e)
     if not os.path.isfile(location):
         data = requests.get(url)
         with open(location, 'wb')as file:
@@ -120,15 +129,13 @@ def write_tags(location, format, artist, album, name, thumb):
         audio['album'] = album
         audio.save()
         
-
+# Cache thumbnails
 def cache_thumb(id): 
     img_dir = tmp_dir+'img/'
-    if not os.path.exists(img_dir):
-        os.makedirs(img_dir)
     if not check_exist(str(id), img_dir):
         img_url = request_api(api+"/song/detail?ids="+str(id)).json()["songs"][0]['al']['picUrl']
         img = requests.get(img_url)
-        img_ext = img_url.split('.')[-1]
+        img_ext = img_url.split('.')[-1].lower()
         location = img_dir+str(id) + '.' + img_ext
         with open(location, 'wb')as file:
             file.write(img.content)
@@ -149,8 +156,9 @@ def cache_thumb(id):
             return img_dir+str(id) + '.jpg'
         return location
     else:
-            return check_exist(str(id), img_dir)
+        return check_exist(str(id), img_dir)
         
+# Check if directory has item(s)
 def check_exist(item, dir):
     for item in os.listdir(dir):
         if os.path.splitext(item)[0] == id and os.path.isfile(os.path.join(dir, item)):
