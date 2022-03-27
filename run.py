@@ -80,7 +80,7 @@ def handle_netease(message):
             else:
                 bot.edit_message_text(chat_id=message.chat.id, message_id=reply.id, text="正在发送\n「<b>"+song.name+"</b>」\nby "+song.artist, parse_mode='HTML')
                 audio = open(location.song, 'rb')
-                if thumb:
+                if location.thumb:
                     thumb = open(location.thumb, 'rb')
                 else:
                     thumb = None
