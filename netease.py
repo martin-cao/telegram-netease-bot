@@ -139,7 +139,7 @@ def cache_thumb(id):
         location = img_dir+str(id) + '.' + img_ext
         with open(location, 'wb')as file:
             file.write(img.content)
-        import Image
+        from pillow import Image
         MAX_SIZE = 320
         image = Image.open(location)
         original_size = max(image.size[0], image.size[1])
