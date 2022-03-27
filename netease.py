@@ -90,38 +90,40 @@ def write_tags(location, format, artist, album, name, thumb):
     if format == 'flac':
         from mutagen.flac import Picture, FLAC
         audio = FLAC(location)
-        image = Picture()
-        image.type = 3
-        image.desc = 'cover'
-        if thumb.endswith('png'):
-            image.mime = 'image/png'
-        elif thumb.endswith('jpg'):
-            image.mime = 'image/jpeg'
-        with open(thumb, 'rb') as img:
-            image.data = img.read()
-        audio.add_picture(image)
+        if thumb:
+            image = Picture()
+            image.type = 3
+            image.desc = 'cover'
+            if thumb.endswith('png'):
+                image.mime = 'image/png'
+            elif thumb.endswith('jpg'):
+                image.mime = 'image/jpeg'
+            with open(thumb, 'rb') as img:
+                image.data = img.read()
+            audio.add_picture(image)
         audio["TITLE"] = name
         audio['ARTIST'] = artist
         audio['ALBUM'] = album
         audio.save()
     if format == 'mp3':
-        from mutagen.mp3 import MP3
-        from mutagen.id3 import ID3, APIC
-        audio = MP3(location, ID3=ID3)   
-        if thumb.endswith('png'):
-            mime = 'image/png'
-        elif thumb.endswith('jpg'):
-            mime = 'image/jpeg' 
-        audio.tags.add(
-            APIC(
-                encoding=3, 
-                mime=mime, 
-                type=3, 
-                desc=u'Cover',
-                data=open(thumb).read()
+        if thumb:
+            from mutagen.mp3 import MP3
+            from mutagen.id3 import ID3, APIC
+            audio = MP3(location, ID3=ID3)   
+            if thumb.endswith('png'):
+                mime = 'image/png'
+            elif thumb.endswith('jpg'):
+                mime = 'image/jpeg' 
+            audio.tags.add(
+                APIC(
+                    encoding=3, 
+                    mime=mime, 
+                    type=3, 
+                    desc=u'Cover',
+                    data=open(thumb).read()
+                )
             )
-        )
-        audio.save()
+            audio.save()
         from mutagen.easyid3 import EasyID3
         audio = EasyID3(location)
         audio["title"] = name
