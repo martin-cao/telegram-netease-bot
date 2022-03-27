@@ -127,6 +127,21 @@ def cache_thumb(id):
         location = tmp_dir+str(id) + '.' + img_ext
         with open(location, 'wb')as file:
             file.write(img.content)
+        import Image
+        MAX_SIZE = 320
+        image = Image.open(location)
+        original_size = max(image.size[0], image.size[1])
+        if original_size >= MAX_SIZE:
+            resized_file = open(location.split('.')[0]+'.jpg', "w")
+            if (image.size[0] > image.size[1]):
+                resized_width = MAX_SIZE
+                resized_height = int(round((MAX_SIZE/float(image.size[0]))*image.size[1])) 
+            else:
+                resized_height = MAX_SIZE
+                resized_width = int(round((MAX_SIZE/float(image.size[1]))*image.size[0]))
+            image = image.resize((resized_width, resized_height), Image.ANTIALIAS)
+            image.save(resized_file, 'JPEG')
+            return tmp_dir+str(id) + '.jpg'
         return location
     else:
         if os.path.isfile(tmp_dir+str(id)+'.jpg'):
